@@ -210,7 +210,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame,c
                     // 上一帧地图点对应特征点，所在的金字塔层级
                     int nLastOctave = LastFrame.mvKeys[i].octave;
                     // Search in a window. Size depends on scale，根据尺度，确定搜索半径
-                    float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
+                    float radius = th * CurrentFrame.mvScaleFactors[nLastOctave];
                     vector<size_t> vIndices2;
 
                     // 根据前进/后退，确定搜索尺度范围，获取当前帧中待匹配的特征点
@@ -549,7 +549,7 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
     }
 
 // 通过F、kF的词袋，在F帧中，对关键帧的特征点进行跟踪，构建新的特征点、地图点匹配对（用于重定位、回环检测）
-int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPointMatches)
+int ORBmatcher::SearchByBoW(KeyFrame* pKF, Frame &F, vector<MapPoint*> &vpMapPointMatches)
     {
         // 获取关键帧pKF的所有地图点
         const vector<MapPoint*> vpMapPointsKF = pKF->GetMapPointMatches();
@@ -1232,7 +1232,7 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
                 if(pMP1)
                     continue;
 
-                const bool bStereo1 = pKF1->mvuRight[idx1]>=0;  // 右目中有匹配点
+                const bool bStereo1 = pKF1->mvuRight[idx1]>=0;  // 右目中是否有匹配点
 
                 if(bOnlyStereo)                                 // 要求特征点在右目中存在匹配
                     if(!bStereo1)
@@ -1511,8 +1511,8 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
 }
 
 // 将当前关键帧闭环匹配上的 关键帧及其共视关键帧 观测到的地图点 投影到当前关键帧
-// 共视地图点在该pKF帧中有匹配特征点，该特征点对应的地图点存在且有效，用该地图点替换共视帧中的地图点；
-// 该特征点对应的地图点不存在，为共视地图点添加观测帧pKF，并为帧pKF添加地图点
+// 共视地图点在该pKF帧中有匹配特征点，该特征点对应的地图点存在且有效，记录该地图点，后续会被替换；
+// 该特征点对应的地图点不存在，为闭环共视地图点添加观测帧pKF，并为帧pKF添加地图点
 int ORBmatcher::Fuse(KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoints, float th,
                      vector<MapPoint *> &vpReplacePoint)
 {
@@ -1613,13 +1613,13 @@ int ORBmatcher::Fuse(KeyFrame *pKF, cv::Mat Scw, const vector<MapPoint *> &vpPoi
         if(bestDist<=TH_LOW)    // 最优距离小于阈值
         {
             MapPoint* pMPinKF = pKF->GetMapPoint(bestIdx);
-            // 若该特征点有对应的地图点且有效，则用该地图点替换共视关键帧中的地图点
+            // 若该特征点有对应的地图点且有效，则记录该地图点，后边会被闭环帧对应的地图点替换
             if(pMPinKF)
             {
                 if(!pMPinKF->isBad())
                     vpReplacePoint[iMP] = pMPinKF;
             }
-            // 若该特征点没有对应的地图点，则为该共视关键帧中的地图点 添加观测，并为该帧pKF添加地图点
+            // 若该特征点没有对应的地图点，则为闭环帧中的地图点pMP添加观测，并为该帧pKF添加地图点
             else
             {
                 pMP->AddObservation(pKF,bestIdx);

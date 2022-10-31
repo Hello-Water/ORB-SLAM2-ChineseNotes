@@ -62,7 +62,7 @@ void Map::EraseKeyFrame(KeyFrame *pKF)
     // Delete the MapPoint
 }
 
-// 设置参考地图点用于绘图显示局部地图点（红色）
+// 设置参考地图点(即当前帧匹配到的地图点)用于绘图显示局部地图点（红色），参考地图点->初始化地图点
 void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)
 {
     unique_lock<mutex> lock(mMutexMap);

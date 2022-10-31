@@ -380,7 +380,7 @@ float Initializer::CheckHomography(const cv::Mat &H21, const cv::Mat &H12, vecto
         const float u2 = kp2.pt.x;
         const float v2 = kp2.pt.y;
 
-        // Reprojection error in first image
+        // Re-projection error in first image
         // x2in1 = H12*x2，当前帧到参考帧的重投影误差，投影归一化像素坐标
         const float w2in1inv = 1.0/(h31inv*u2+h32inv*v2+h33inv);
         const float u2in1 = (h11inv*u2+h12inv*v2+h13inv)*w2in1inv;
@@ -394,7 +394,7 @@ float Initializer::CheckHomography(const cv::Mat &H21, const cv::Mat &H12, vecto
         else                    // 内点，累加得分（误差越大，得分越低）
             score += th - chiSquare1;
 
-        // Reprojection error in second image
+        // Re-projection error in second image
         // x1in2 = H21*x1，参考帧到当前帧的重投影误差
         const float w1in2inv = 1.0/(h31*u1+h32*v1+h33);
         const float u1in2 = (h11*u1+h12*v1+h13)*w1in2inv;
@@ -801,7 +801,8 @@ bool Initializer::ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv:
 
 // 三角化出三维点X，已知匹配点对{x,x'}，投影矩阵{P,P'}，x=PX, x'=P'X
 // 构造AX=0，一对点6个方程，选取其中四个求解
-void Initializer::Triangulate(const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const cv::Mat &P1, const cv::Mat &P2, cv::Mat &x3D)
+void Initializer::Triangulate(const cv::KeyPoint &kp1, const cv::KeyPoint &kp2,
+                              const cv::Mat &P1, const cv::Mat &P2, cv::Mat &x3D)
 {
     cv::Mat A(4,4,CV_32F);
 
@@ -876,10 +877,11 @@ void Initializer::Normalize(const vector<cv::KeyPoint> &vKeys, vector<cv::Point2
 }
 
 // cheirality check，三角化出的3d点应该有正深度，返回good点数目
-int Initializer::CheckRT(const cv::Mat &R, const cv::Mat &t, const vector<cv::KeyPoint> &vKeys1, const vector<cv::KeyPoint> &vKeys2,
-                       const vector<Match> &vMatches12, vector<bool> &vbMatchesInliers,
-                       const cv::Mat &K, vector<cv::Point3f> &vP3D, float th2, vector<bool> &vbGood, float &parallax)
-{
+int Initializer::CheckRT(const cv::Mat &R, const cv::Mat &t,
+                         const vector<cv::KeyPoint> &vKeys1, const vector<cv::KeyPoint> &vKeys2,
+                         const vector<Match> &vMatches12, vector<bool> &vbMatchesInliers,
+                         const cv::Mat &K, vector<cv::Point3f> &vP3D, float th2, vector<bool> &vbGood,
+                         float &parallax) {
     // Calibration parameters
     const float fx = K.at<float>(0,0);
     const float fy = K.at<float>(1,1);
