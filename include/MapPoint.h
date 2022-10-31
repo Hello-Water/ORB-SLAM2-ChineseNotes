@@ -101,16 +101,16 @@ public:
     int mnTrackScaleLevel;                          // 跟踪该地图点时的尺度水平
     float mTrackViewCos;                            // 跟踪到地图点时，图像帧的视角（观测向量与平均观测向量的夹角余弦）
     long unsigned int mnTrackReferenceForFrame;     // 地图点有效时，跟踪到的当前帧id，防止地图点重复添加至mvpLocalMapPoints
-    long unsigned int mnLastFrameSeen;              // 观测到该地图点的上一帧图像id，决定是否进行isInFrustum判断
+    long unsigned int mnLastFrameSeen;              // 标记当前帧地图点id，新增地图点投影匹配不参与
 
     // Variables used by local mapping
-    long unsigned int mnBALocalForKF;               // TODO...参与局部BA的关键帧索引id？
-    long unsigned int mnFuseCandidateForKF;         // TODO...用于地图点融合的候选关键帧id？
+    long unsigned int mnBALocalForKF;               // 标记该地图点参与局部BA时的关键帧id索引
+    long unsigned int mnFuseCandidateForKF;         // 标记该地图点参与融合时的关键帧id索引
 
     // Variables used by loop closing
-    long unsigned int mnLoopPointForKF;             // TODO...某关键帧中参与到回环的地图点索引？
-    long unsigned int mnCorrectedByKF;              // TODO...参与到回环的关键帧索引？
-    long unsigned int mnCorrectedReference;         // TODO...该地图点对应到修正后的关键帧索引？
+    long unsigned int mnLoopPointForKF;             // 标记该地图点参与闭环时的关键帧id索引
+    long unsigned int mnCorrectedByKF;              // 标记该地图点被闭环修正时的关键帧id索引
+    long unsigned int mnCorrectedReference;         // 该地图点对应到修正后的参考关键帧
     cv::Mat mPosGBA;                                // 全局BA优化后的地图点位姿
     long unsigned int mnBAGlobalForKF;              // 参加全局BA优化的地图点对应的KeyFrame索引
 
@@ -141,7 +141,7 @@ protected:
 
      // Bad flag (we do not currently erase MapPoint from memory)
      bool mbBad;                                    // bad地图点
-     MapPoint* mpReplaced;                          // 被替换掉的地图点
+     MapPoint* mpReplaced;                          // 用于替换的地图点
 
      // Scale invariance distances
      float mfMinDistance;                           // 金字塔尺度不变下的最小距离（光心与地图点之间）

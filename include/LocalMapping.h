@@ -49,13 +49,13 @@ public:
     // Main function
     void Run();
 
-    void InsertKeyFrame(KeyFrame* pKF);
+    void InsertKeyFrame(KeyFrame* pKF);     // 将关键帧插入到新关键帧列表 mlNewKeyFrames，等待处理
 
-    // Thread Synch
+    // Thread Synch，线程同步
     void RequestStop();
     void RequestReset();
     bool Stop();
-    void Release();
+    void Release();                         // 释放该线程、释放当前还在缓冲区(新关键帧列表)的关键帧指针
     bool isStopped();
     bool stopRequested();
     bool AcceptKeyFrames();
@@ -67,25 +67,37 @@ public:
     void RequestFinish();
     bool isFinished();
 
+    // 队列中(缓冲区)等待插入的关键帧数目
     int KeyframesInQueue(){
         unique_lock<std::mutex> lock(mMutexNewKFs);
         return mlNewKeyFrames.size();
     }
 
 protected:
-
+    // 检查关键帧队列是否为空(是否有待处理的关键帧)
     bool CheckNewKeyFrames();
+
+    // 处理列表中的关键帧，计算Bow，加速三角化新的MapPoints；
+    // 关联当前关键帧至MapPoints，并更新MapPoints的平均观测方向和观测距离范围；
+    // 插入关键帧，更新Co-visibility图和Essential图
     void ProcessNewKeyFrame();
+
+    // 关键帧与共视关键帧通过三角化恢复初的地图点
     void CreateNewMapPoints();
 
+    // 检查新关键帧引入的地图点，剔除质量不好的点
     void MapPointCulling();
+
+    // 检查并融合当前关键帧与两级共视帧重复的地图点
     void SearchInNeighbors();
 
+    // 剔除局部冗余关键帧(90%以上的地图点可以被至少3个其他关键帧观测到)
+    // 对当前关键帧的共视关键帧进行处理
     void KeyFrameCulling();
 
     cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
-    cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
+    cv::Mat SkewSymmetricMatrix(const cv::Mat &v);      // 计算三维向量v的反对称矩阵
 
     bool mbMonocular;
 
@@ -108,15 +120,16 @@ protected:
 
     KeyFrame* mpCurrentKeyFrame;
 
+    // 存储当前关键帧生成的地图点列表，也是等待检查的地图点列表
     std::list<MapPoint*> mlpRecentAddedMapPoints;
 
     std::mutex mMutexNewKFs;
 
     bool mbAbortBA;
 
-    bool mbStopped;
-    bool mbStopRequested;
-    bool mbNotStop;
+    bool mbStopped;         // 当前LocalMapping线程是否已停止
+    bool mbStopRequested;   // 当前LocalMapping线程是否收到停止请求
+    bool mbNotStop;         // 当前LocalMapping线程是否未停止，默认为false
     std::mutex mMutexStop;
 
     bool mbAcceptKeyFrames;

@@ -55,144 +55,188 @@
 #include "MapPoint.h"
 #include "Frame.h"
 
-namespace ORB_SLAM2
-{
+namespace ORB_SLAM2 {
 
-class PnPsolver {
- public:
-  PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches);
+    // EPnP：已知世界坐标系下3D点坐标、对应的2D像素坐标、相机内参；求解相机位姿(外参)
+    class PnPsolver {
 
-  ~PnPsolver();
+    public:
+        PnPsolver(const Frame &F, const vector<MapPoint *> &vpMapPointMatches);
 
-  void SetRansacParameters(double probability = 0.99, int minInliers = 8 , int maxIterations = 300, int minSet = 4, float epsilon = 0.4,
-                           float th2 = 5.991);
+        ~PnPsolver();
 
-  cv::Mat find(vector<bool> &vbInliers, int &nInliers);
+        // 设置Ransac迭代参数
+        void SetRansacParameters(double probability = 0.99, int minInliers = 8, int maxIterations = 300,
+                                 int minSet = 4, float epsilon = 0.4, float th2 = 5.991);
 
-  cv::Mat iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers);
+        // 获取内点标记、内点数量
+        cv::Mat find(vector<bool> &vbInliers, int &nInliers);
 
- private:
+        // 迭代计算，返回相机位姿 Tcw
+        cv::Mat iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers);
 
-  void CheckInliers();
-  bool Refine();
+    private:
 
-  // Functions from the original EPnP code
-  void set_maximum_number_of_correspondences(const int n);
-  void reset_correspondences(void);
-  void add_correspondence(const double X, const double Y, const double Z,
-              const double u, const double v);
+        // 使用求解得到的位姿Tcw 进行3D-2D投影，统计内点数目
+        void CheckInliers();
 
-  double compute_pose(double R[3][3], double T[3]);
+        // 使用最优内点的匹配对，再次EPnP求解，优化相机位姿；用优化后的位姿再次3D-2D投影，统计内点数目
+        // 返回的结果(bool类型)表示经过优化后的内点数,能否达到退出RANSAC的要求
+        bool Refine();
 
-  void relative_error(double & rot_err, double & transl_err,
-              const double Rtrue[3][3], const double ttrue[3],
-              const double Rest[3][3],  const double test[3]);
+        // ------------- Functions from the original EPnP code --------------
 
-  void print_pose(const double R[3][3], const double t[3]);
-  double reprojection_error(const double R[3][3], const double t[3]);
+        // 设置最大匹配数，每次RANSAC计算的过程中使用的匹配点对的最大值（至少为n）
+        void set_maximum_number_of_correspondences(const int n);
 
-  void choose_control_points(void);
-  void compute_barycentric_coordinates(void);
-  void fill_M(CvMat * M, const int row, const double * alphas, const double u, const double v);
-  void compute_ccs(const double * betas, const double * ut);
-  void compute_pcs(void);
+        // 清空当前已有的匹配点对计数,为进行新的一次迭代作准备
+        void reset_correspondences(void);
 
-  void solve_for_sign(void);
+        // 添加匹配点对
+        void add_correspondence(const double X, const double Y, const double Z,
+                                const double u, const double v);
 
-  void find_betas_approx_1(const CvMat * L_6x10, const CvMat * Rho, double * betas);
-  void find_betas_approx_2(const CvMat * L_6x10, const CvMat * Rho, double * betas);
-  void find_betas_approx_3(const CvMat * L_6x10, const CvMat * Rho, double * betas);
-  void qr_solve(CvMat * A, CvMat * b, CvMat * X);
+        // EPnP计算相机位姿，旋转、平移
+        double compute_pose(double R[3][3], double T[3]);
 
-  double dot(const double * v1, const double * v2);
-  double dist2(const double * p1, const double * p2);
+        // 计算相对误差， 真值-估计值
+        void relative_error(double &rot_err, double &transl_err,
+                            const double Rtrue[3][3], const double ttrue[3],
+                            const double Rest[3][3], const double test[3]);
 
-  void compute_rho(double * rho);
-  void compute_L_6x10(const double * ut, double * l_6x10);
+        void print_pose(const double R[3][3], const double t[3]);
 
-  void gauss_newton(const CvMat * L_6x10, const CvMat * Rho, double current_betas[4]);
-  void compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
-				    double cb[4], CvMat * A, CvMat * b);
+        // 计算(平均)重投影误差，匹配对像素坐标-3D点重投影像素坐标
+        double reprojection_error(const double R[3][3], const double t[3]);
 
-  double compute_R_and_t(const double * ut, const double * betas,
-			 double R[3][3], double t[3]);
+        // 从给定的匹配3D点中计算出4个控制点（世界坐标系下）
+        void choose_control_points(void);
 
-  void estimate_R_and_t(double R[3][3], double t[3]);
+        // 计算4个控制点的系数 alpha_ij
+        void compute_barycentric_coordinates(void);
 
-  void copy_R_and_t(const double R_dst[3][3], const double t_dst[3],
-		    double R_src[3][3], double t_src[3]);
+        // 构造M矩阵，每对匹配点可以填充2行
+        void fill_M(CvMat *M, const int row, const double *alphas, const double u, const double v);
 
-  void mat_to_quat(const double R[3][3], double q[4]);
+        // 计算4个控制点在相机坐标系下的坐标（根据计算出的beta、vi）
+        void compute_ccs(const double *betas, const double *ut);
+
+        // 计算3D点在相机坐标系下的坐标（根据4个控制点相机坐标、控制点系数计算）
+        void compute_pcs(void);
+
+        // 保证3D点在相机坐标系下的深度为正（在相机前方）
+        void solve_for_sign(void);
+
+        // 计算N=4时的 L矩阵
+        void compute_L_6x10(const double *ut, double *l_6x10);
+
+        // 计算N=4、N=2、N=3时的beta近似解，将其他beta变量置为0
+        void find_betas_approx_1(const CvMat *L_6x10, const CvMat *Rho, double *betas);
+        void find_betas_approx_2(const CvMat *L_6x10, const CvMat *Rho, double *betas);
+        void find_betas_approx_3(const CvMat *L_6x10, const CvMat *Rho, double *betas);
+
+        // 高斯牛顿法优化beta
+        void gauss_newton(const CvMat *L_6x10, const CvMat *Rho, double current_betas[4]);
+
+        // 计算(构造)A，b（Ax=b高斯牛顿法优化beta，cb为beta的粗略解）
+        void compute_A_and_b_gauss_newton(const double *l_6x10, const double *rho,
+                                          double cb[4], CvMat *A, CvMat *b);
+
+        // QR分解，求解增量方程 AX=b（X即delta_beta）
+        void qr_solve(CvMat *A, CvMat *b, CvMat *X);
+
+        // 两个三维向量的内积（点乘）
+        double dot(const double *v1, const double *v2);
+
+        // 两点之间的距离平方
+        double dist2(const double *p1, const double *p2);
+
+        // 计算四个控制点任意两点间的距离，总共6个距离
+        void compute_rho(double *rho);
+
+        // 根据beta、vi求控制点在相机坐标系下的坐标、3d点在相机坐标系下坐标，恢复相机R、t
+        // 返回使用该位姿，得到的重投影误差
+        double compute_R_and_t(const double *ut, const double *betas,
+                               double R[3][3], double t[3]);
+
+        // ICP求解相机位姿（被compute_R_and_t调用），3d点在 世界坐标系 和 相机坐标系下 的坐标
+        void estimate_R_and_t(double R[3][3], double t[3]);
+
+        void copy_R_and_t(const double R_dst[3][3], const double t_dst[3],
+                          double R_src[3][3], double t_src[3]);
+
+        // 旋转矩阵 转换为 四元数
+        void mat_to_quat(const double R[3][3], double q[4]);
 
 
-  double uc, vc, fu, fv;
+        double uc, vc, fu, fv;
 
-  double * pws, * us, * alphas, * pcs;
-  int maximum_number_of_correspondences;
-  int number_of_correspondences;
+        double *pws, *us, *alphas, *pcs;            // 3d点 世界坐标、像素坐标、控制点系数(其实也是坐标)、相机坐标
+        int maximum_number_of_correspondences;      // 每次RANSAC计算的过程中使用的匹配点对数的最大值
+        int number_of_correspondences;              // 当前迭代中,已经采样的匹配点的个数，默认值为4
 
-  double cws[4][3], ccs[4][3];
-  double cws_determinant;
+        double cws[4][3], ccs[4][3];                // 控制点世界坐标、相机坐标
+        double cws_determinant;                     // 控制点世界坐标矩阵的行列式？
 
-  vector<MapPoint*> mvpMapPointMatches;
+        vector<MapPoint *> mvpMapPointMatches;      // 构造EPnP时，给定的地图点
 
-  // 2D Points
-  vector<cv::Point2f> mvP2D;
-  vector<float> mvSigma2;
+        // 2D Points
+        vector<cv::Point2f> mvP2D;
+        vector<float> mvSigma2;                     //
 
-  // 3D Points
-  vector<cv::Point3f> mvP3Dw;
+        // 3D Points
+        vector<cv::Point3f> mvP3Dw;
 
-  // Index in Frame
-  vector<size_t> mvKeyPointIndices;
+        // Index in Frame
+        vector<size_t> mvKeyPointIndices;
 
-  // Current Estimation
-  double mRi[3][3];
-  double mti[3];
-  cv::Mat mTcwi;
-  vector<bool> mvbInliersi;
-  int mnInliersi;
+        // Current Estimation
+        double mRi[3][3];                   // 当前RANSAC迭代得到的旋转矩阵
+        double mti[3];                      // 当前RANSAC迭代得到的平移向量
+        cv::Mat mTcwi;                      // 当前RANSAC迭代得到的 变换矩阵T
+        vector<bool> mvbInliersi;           // 当前RANSAC迭代中，是否是内点
+        int mnInliersi;                     // 当前RANSAC迭代中，内点数目
 
-  // Current Ransac State
-  int mnIterations;
-  vector<bool> mvbBestInliers;
-  int mnBestInliers;
-  cv::Mat mBestTcw;
+        // Current Ransac State
+        int mnIterations;                   // RANSAC已经迭代的次数
+        vector<bool> mvbBestInliers;        // 已经RANSAC迭代中，最优迭代的内点标记
+        int mnBestInliers;                  // 已经RANSAC迭代中，最优迭代的内点数目
+        cv::Mat mBestTcw;                   // 已经RANSAC迭代中，最优迭代的 变换矩阵
 
-  // Refined
-  cv::Mat mRefinedTcw;
-  vector<bool> mvbRefinedInliers;
-  int mnRefinedInliers;
+        // Refined
+        cv::Mat mRefinedTcw;                // 优化后的位姿变换矩阵
+        vector<bool> mvbRefinedInliers;     // 优化后的内点标记
+        int mnRefinedInliers;               // 优化后的内点数目
 
-  // Number of Correspondences
-  int N;
+        // Number of Correspondences
+        int N;                              // 当前帧与地图点匹配的特征点数目（采样总体）
 
-  // Indices for random selection [0 .. N-1]
-  vector<size_t> mvAllIndices;
+        // Indices for random selection [0 .. N-1]
+        vector<size_t> mvAllIndices;        // 特征点索引（供RANSAC使用）
 
-  // RANSAC probability
-  double mRansacProb;
+        // RANSAC probability
+        double mRansacProb;                 // 计算RANSAC迭代次数理论值时用到的概率,和Sim3Slover中的一样
 
-  // RANSAC min inliers
-  int mRansacMinInliers;
+        // RANSAC min inliers
+        int mRansacMinInliers;              // 正常退出RANSAC时，需要达到的最少内点个数
 
-  // RANSAC max iterations
-  int mRansacMaxIts;
+        // RANSAC max iterations
+        int mRansacMaxIts;                  // RANSAC最大迭代次数
 
-  // RANSAC expected inliers/total ratio
-  float mRansacEpsilon;
+        // RANSAC expected inliers/total ratio
+        float mRansacEpsilon;               // RANSAC中，最小内点数占全部点个数的比例
 
-  // RANSAC Threshold inlier/outlier. Max error e = dist(P1,T_12*P2)^2
-  float mRansacTh;
+        // RANSAC Threshold inlier/outlier. Max error e = dist(P1,T_12*P2)^2
+        float mRansacTh;
 
-  // RANSAC Minimun Set used at each iteration
-  int mRansacMinSet;
+        // RANSAC Minimum Set used at each iteration
+        int mRansacMinSet;                  // 每次RANSAC需要的特征点数，默认为4组3D-2D对应点
 
-  // Max square error associated with scale level. Max error = th*th*sigma(level)*sigma(level)
-  vector<float> mvMaxError;
+        // Max square error associated with scale level. Max error = th*th*sigma(level)*sigma(level)
+        vector<float> mvMaxError;           // 不同图层上的特征点在进行内点验证的时候,使用的不同的误差阈值
 
-};
+    };
 
 } //namespace ORB_SLAM
 
-#endif //PNPSOLVER_H
+#endif // PNPSOLVER_H

@@ -37,24 +37,34 @@ class LoopClosing;
 class Optimizer
 {
 public:
+    // 被全局BA调用，优化传入的关键帧位姿、地图点位置。
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,
-                                 int nIterations = 5, bool *pbStopFlag=NULL, const unsigned long nLoopKF=0,
-                                 const bool bRobust = true);
-    void static GlobalBundleAdjustemnt(Map* pMap, int nIterations=5, bool *pbStopFlag=NULL,
-                                       const unsigned long nLoopKF=0, const bool bRobust = true);
+                                 int nIterations = 5, bool *pbStopFlag=nullptr, unsigned long nLoopKF=0,
+                                 bool bRobust=true);
+
+    // 全局优化(共视图Tracking,LoopClosing)。优化地图中所有关键帧位姿、所有地图点位置。调用BundleAdjustment。
+    void static GlobalBundleAdjustment(Map* pMap, int nIterations= 5, bool *pbStopFlag= nullptr,
+                                       unsigned long nLoopKF= 0, bool bRobust= true);
+
+    // 局部BA优化(LocalMapping线程使用)。优化局部地图中的关键帧位姿 和 所有观测到的地图点3D位置。
     void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap);
+
+    // 优化当前帧位姿 (Tracking线程使用)，返回优化后的内点数。
+    // 利用当前帧观测到的地图点，上一帧位姿作为初始值，最小化重投影误差。e = (u,v) - K(Tcw*Pw)
     int static PoseOptimization(Frame* pFrame);
 
-    // if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
+    // if bFixScale is true, 6DoF optimization (stereo,rgb-d), 7DoF otherwise (mono)
+    // 全局本质图优化(LoopClosing). 加入闭环约束, 优化所有关键帧位姿.
     void static OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
                                        const LoopClosing::KeyFrameAndPose &CorrectedSim3,
                                        const map<KeyFrame *, set<KeyFrame *> > &LoopConnections,
                                        const bool &bFixScale);
 
-    // if bFixScale is true, optimize SE3 (stereo,rgbd), Sim3 otherwise (mono)
+    // if bFixScale is true, optimize SE3 (stereo,rgb-d), Sim3 otherwise (mono)
+    // 优化两帧之间的Sim3变换(LoopClosing线程使用)，返回优化后的匹配点对数。
     static int OptimizeSim3(KeyFrame* pKF1, KeyFrame* pKF2, std::vector<MapPoint *> &vpMatches1,
-                            g2o::Sim3 &g2oS12, const float th2, const bool bFixScale);
+                            g2o::Sim3 &g2oS12, float th2, bool bFixScale);
 };
 
 } //namespace ORB_SLAM

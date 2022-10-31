@@ -87,7 +87,7 @@ public:
     void EraseMapPointMatch(MapPoint* pMP);                         // 删除该帧观测到的地图点pMP
     void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);    // 该帧中idx特征点对应的地图点替换为pMP
     std::set<MapPoint*> GetMapPoints();                             // 获取该关键帧的所有地图点集合
-    std::vector<MapPoint*> GetMapPointMatches();                    // 获取该关键帧的所有地图点vector(有序？)
+    std::vector<MapPoint*> GetMapPointMatches();                    // 获取该关键帧的所有地图点vector
     int TrackedMapPoints(const int &minObs);                        // 该帧的地图点中，观测数>=minObs的地图点数目
     MapPoint* GetMapPoint(const size_t &idx);                       // 获取该帧idx特征点对应的地图点
 
@@ -138,8 +138,8 @@ public:
     long unsigned int mnFuseTargetForKF;            // 与当前帧融合的关键帧id
 
     // Variables used by the local mapping
-    long unsigned int mnBALocalForKF;               // TODO...参与局部BA的关键帧索引id，可被优化的关键帧？
-    long unsigned int mnBAFixedForKF;               // TODO...只提供信息，不被优化的关键帧id?
+    long unsigned int mnBALocalForKF;               // 参与局部BA的关键帧索引id（参与标记）
+    long unsigned int mnBAFixedForKF;               // 只提供信息，不被优化的关键帧id
 
     // Variables used by the keyframe database
     long unsigned int mnLoopQuery;                  // 该关键帧的回环关键帧id
@@ -152,7 +152,7 @@ public:
     // Variables used by loop closing
     cv::Mat mTcwGBA;                                // 该关键帧经全局优化后的位姿
     cv::Mat mTcwBefGBA;                             // 该关键帧全局优化前的位姿
-    long unsigned int mnBAGlobalForKF;              // TODO...触发 该关键帧参与的 全局BA的 关键帧id?
+    long unsigned int mnBAGlobalForKF;              // 触发全局BA的关键帧id(该关键帧参与的全局BA标记)
 
     // Calibration parameters
     const float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;

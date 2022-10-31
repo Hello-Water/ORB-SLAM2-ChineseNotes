@@ -54,7 +54,7 @@ public:
     int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
 
     // Project MapPoints seen in KeyFrame into the Frame and search matches.
-    // Used in re-localisation (Tracking) 将关键帧观测到的地图点投影到当前帧中,进行匹配跟踪（用于重定位）
+    // Used in re-localisation (Tracking) 将关键帧观测到的(未匹配)地图点投影到当前帧中,进行匹配跟踪（用于重定位）
     int SearchByProjection(Frame &CurrentFrame, KeyFrame* pKF, const std::set<MapPoint*> &sAlreadyFound,
                            const float th, const int ORBdist);
 

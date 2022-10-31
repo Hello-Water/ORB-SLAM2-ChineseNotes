@@ -184,7 +184,7 @@ public:
     long unsigned int mnId;
 
     // Reference Keyframe. 参考关键帧
-    KeyFrame* mpReferenceKF;    // 与当前帧共视程度最高的关键帧
+    KeyFrame* mpReferenceKF;
 
     // Scale pyramid info. 图像金字塔的相关信息
     int mnScaleLevels;
